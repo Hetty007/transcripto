@@ -1,44 +1,47 @@
-const axios = require('axios');
+const axios = require("axios");
 
-function extractVideoId(videoUrl) {
+function extractVideoId(url) {
   try {
-    const u = new URL(videoUrl);
-    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
-    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v');
-  } catch (e) {}
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be"))      return u.pathname.slice(1);
+    if (u.hostname.includes("youtube.com"))  return u.searchParams.get("v");
+  } catch (_) {}
   return null;
 }
 
-exports.handler = async function(event, context) {
-  const { videoUrl } = JSON.parse(event.body || '{}');
-  if (!videoUrl) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Missing videoUrl' }) };
-  }
+exports.handler = async function(event) {
+  const { videoUrl } = JSON.parse(event.body || "{}");
   const videoId = extractVideoId(videoUrl);
   if (!videoId) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid YouTube URL' }) };
+    return { statusCode: 400, body: JSON.stringify({ error: "Invalid YouTube URL" }) };
   }
 
   try {
-    const res = await axios.get(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    const html = res.data;
-    const match = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/s);
-    if (!match) {
-      throw new Error('INIT_DATA_NOT_FOUND');
-    }
-    const playerResponse = JSON.parse(match[1]);
-    const tracks = playerResponse.captions
+    const html = (await axios.get(
+      `https://www.youtube.com/watch?v=${videoId}`,
+      { headers: { "User-Agent": "Mozilla/5.0" } }
+    )).data;
+    const m = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/s);
+    if (!m) throw new Error("Init data not found");
+
+    const player = JSON.parse(m[1]);
+    const tracks = player.captions
       ?.playerCaptionsTracklistRenderer
-      ?.captionTracks;
-    if (!Array.isArray(tracks) || tracks.length === 0) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'No captions available' }) };
+      ?.captionTracks || [];
+
+    if (!tracks.length) {
+      return { statusCode: 404, body: JSON.stringify({ error: "No captions available" }) };
     }
-    const codes = tracks.map(t => t.languageCode);
-    return { statusCode: 200, body: JSON.stringify({ languages: codes }) };
-  } catch (err) {
+
+    const languages = tracks.map(t => ({
+      code: t.languageCode,
+      name: t.name?.simpleText || t.languageCode
+    }));
+
+    return { statusCode: 200, body: JSON.stringify({ languages }) };
+  }
+  catch (err) {
     console.error(err);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Internal server error' }) };
+    return { statusCode: 500, body: JSON.stringify({ error: "Internal server error" }) };
   }
 };
