@@ -1,23 +1,23 @@
 const axios = require('axios');
 
-function extractVideoId(videoUrl) {
+function extractVideoId(url) {
   try {
-    const u = new URL(videoUrl);
-    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
-    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v');
-  } catch (e) {}
+    const u = new URL(url);
+    if (u.hostname.includes('youtu.be'))     return u.pathname.slice(1);
+    if (u.hostname.includes('youtube.com'))  return u.searchParams.get('v');
+  } catch (_) {}
   return null;
 }
 
 exports.handler = async function(event) {
   const { videoUrl } = JSON.parse(event.body || '{}');
-  const id = extractVideoId(videoUrl);
-  if (!id) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid videoUrl' }) };
+  const videoId = extractVideoId(videoUrl);
+  if (!videoId) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid YouTube URL' }) };
   }
   try {
     const html = (await axios.get(
-      `https://www.youtube.com/watch?v=${id}`,
+      `https://www.youtube.com/watch?v=${videoId}`,
       { headers: { 'User-Agent': 'Mozilla/5.0' } }
     )).data;
     const m = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/s);
@@ -29,8 +29,11 @@ exports.handler = async function(event) {
     if (!tracks.length) {
       return { statusCode: 404, body: JSON.stringify({ error: 'No captions available' }) };
     }
-    const codes = tracks.map(t => t.languageCode);
-    return { statusCode: 200, body: JSON.stringify({ languages: codes }) };
+    const languages = tracks.map(t => ({
+      code: t.languageCode,
+      name: t.name?.simpleText || t.languageCode
+    }));
+    return { statusCode: 200, body: JSON.stringify({ languages }) };
   } catch (err) {
     console.error(err);
     return { statusCode: 500, body: JSON.stringify({ error: 'Internal server error' }) };
