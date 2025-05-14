@@ -1,7 +1,6 @@
 {
-  "name": "transcripto",
+  "name": "transcripto-render",
   "version": "1.0.0",
-  "description": "YouTube Transcript app (manual+ASR timedtext)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
