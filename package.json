@@ -1,6 +1,7 @@
 {
   "name": "transcripto-render",
   "version": "1.0.0",
+  "description": "Transcripto on Render, using video.google.com timedtext",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
