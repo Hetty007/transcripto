@@ -1,7 +1,7 @@
 {
   "name": "transcripto-netlify",
   "version": "1.0.0",
-  "description": "Netlify functions matching local server.js",
+  "description": "Transcripto with Netlify Functions",
   "dependencies": {
     "axios": "^1.4.0",
     "youtube-caption-extractor": "^1.4.3"

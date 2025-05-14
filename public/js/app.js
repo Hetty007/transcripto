@@ -8,92 +8,84 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const urlInput = document.getElementById('url');
-  const goBtn = document.getElementById('go');
-  const errorEl = document.getElementById('error');
-  const langSection = document.getElementById('language-section');
-  const langButtons = document.getElementById('languageButtons');
-  const transcriptSection = document.getElementById('transcript-section');
-  const player = document.getElementById('player');
+  const goBtn    = document.getElementById('go');
+  const errorEl  = document.getElementById('error');
+  const langSec  = document.getElementById('language-section');
+  const langBtns = document.getElementById('languageButtons');
+  const transSec = document.getElementById('transcript-section');
+  const player   = document.getElementById('player');
   const resultEl = document.getElementById('result');
-  const copyBtn = document.getElementById('copyBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
-  
-  let currentVideoUrl = '';
+  const copyBtn  = document.getElementById('copyBtn');
+  const dlBtn    = document.getElementById('downloadBtn');
+
+  let currentUrl = '';
 
   goBtn.addEventListener('click', async () => {
     const videoUrl = urlInput.value.trim();
     errorEl.textContent = '';
-    langSection.classList.add('hidden');
-    transcriptSection.classList.add('hidden');
-    langButtons.innerHTML = '';
-
+    langSec.classList.add('hidden');
+    transSec.classList.add('hidden');
+    langBtns.innerHTML = '';
     if (!videoUrl) {
-      errorEl.textContent = 'Please enter a video URL.';
+      errorEl.textContent = 'Please enter a YouTube URL.';
       return;
     }
-
-    currentVideoUrl = videoUrl;
-    player.src = '';
-
+    currentUrl = videoUrl;
     try {
-      const res = await fetch(`${FUNC}/languages`, {
+      const r = await fetch(`${FUNC}/languages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ videoUrl })
       });
-      if (!res.ok) {
-        const err = await res.json();
-        errorEl.textContent = err.error || 'Error fetching languages.'; return;
-      }
-      const { languages } = await res.json();
-      languages.forEach(code => {
+      const js = await r.json();
+      if (!r.ok) throw new Error(js.error||'Error fetching languages');
+      js.languages.forEach(code => {
         const btn = document.createElement('button');
         btn.className = 'btn btn-secondary';
         btn.dataset.lang = code;
         btn.textContent = LANGUAGE_NAMES[code] || code;
-        btn.addEventListener('click', async (e) => {
-          langSection.classList.add('hidden');
-          resultEl.textContent = '';
-          transcriptSection.classList.add('hidden');
-          const lang = e.currentTarget.dataset.lang;
-          const videoId = new URL(currentVideoUrl).searchParams.get('v') || currentVideoUrl.split('/').pop(); 
-          player.src = `https://www.youtube.com/embed/${videoId}`;
-          try {
-            const res2 = await fetch(`${FUNC}/transcript`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ videoUrl: currentVideoUrl, lang })
-            });
-            if (!res2.ok) {
-              const err2 = await res2.json();
-              errorEl.textContent = err2.error || 'Error fetching transcript.'; return;
-            }
-            const { transcript } = await res2.json();
-            resultEl.textContent = transcript;
-            transcriptSection.classList.remove('hidden');
-          } catch (e) {
-            console.error(e); errorEl.textContent = 'Server error.';
-          }
-        });
-        langButtons.appendChild(btn);
+        btn.addEventListener('click', selectLang);
+        langBtns.appendChild(btn);
       });
-      langSection.classList.remove('hidden');
+      langSec.classList.remove('hidden');
     } catch (e) {
-      console.error(e); errorEl.textContent = 'Server error.';
+      console.error(e);
+      errorEl.textContent = e.message;
     }
   });
 
+  async function selectLang(e) {
+    langSec.classList.add('hidden');
+    const lang = e.currentTarget.dataset.lang;
+    player.src = `https://www.youtube.com/embed/${new URL(currentUrl).searchParams.get('v')}`;
+    errorEl.textContent = '';
+    try {
+      const r2 = await fetch(`${FUNC}/transcript`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ videoUrl: currentUrl, lang })
+      });
+      const js2 = await r2.json();
+      if (!r2.ok) throw new Error(js2.error||'Error fetching transcript');
+      resultEl.textContent = js2.transcript;
+      transSec.classList.remove('hidden');
+    } catch(e) {
+      console.error(e);
+      errorEl.textContent = e.message;
+    }
+  }
+
   copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(resultEl.textContent).then(() => {
-      copyBtn.textContent = 'Copied!';
-      setTimeout(() => copyBtn.textContent = 'Copy Text', 2000);
-    });
+    navigator.clipboard.writeText(resultEl.textContent);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => copyBtn.textContent='Copy Text', 2000);
   });
 
-  downloadBtn.addEventListener('click', () => {
+  dlBtn.addEventListener('click', () => {
     const blob = new Blob([resultEl.textContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'transcript.txt'; a.click(); URL.revokeObjectURL(url);
+    a.href = URL.createObjectURL(blob);
+    a.download = 'transcript.txt';
+    a.click();
   });
 });

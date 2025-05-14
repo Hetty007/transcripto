@@ -11,19 +11,19 @@ function extractVideoId(videoUrl) {
 
 exports.handler = async function(event) {
   const { videoUrl, lang } = JSON.parse(event.body || '{}');
-  const videoId = extractVideoId(videoUrl);
-  if (!videoId || !lang) {
+  const id = extractVideoId(videoUrl);
+  if (!id || !lang) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid parameters' }) };
   }
   try {
-    const subtitles = await getSubtitles({ videoID: videoId, lang });
-    if (!subtitles || subtitles.length === 0) {
+    const subs = await getSubtitles({ videoID: id, lang });
+    if (!subs || !subs.length) {
       return { statusCode: 404, body: JSON.stringify({ error: 'No subtitles for this language' }) };
     }
-    const transcript = subtitles.map(item => item.text).join(' ').trim();
+    const transcript = subs.map(item => item.text).join(' ').trim();
     return { statusCode: 200, body: JSON.stringify({ transcript }) };
   } catch (err) {
-    console.error('Transcript error:', err);
+    console.error(err);
     return { statusCode: 500, body: JSON.stringify({ error: 'Internal server error' }) };
   }
 };

@@ -16,7 +16,7 @@ body { background: var(--bg-color); color: var(--secondary-color); font-family: 
 .logo { font-size: 2.5rem; color: var(--primary-color); }
 .input-section { display: flex; justify-content: center; align-items: center; gap: var(--spacing-unit); margin-bottom: calc(var(--spacing-unit) * 2); }
 .input-section input { flex: 1; max-width: 600px; padding: 12px; border: 1px solid #DDD; border-radius: 6px; font-size: 1rem; }
-.btn { display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 12px 20px; border: none; border-radius: 6px; font-size: 1rem; font-weight: 500; cursor: pointer; }
+.btn { display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 12px 20px; border: none; border-radius: 6px; font-size: 1rem; font-weight: 500; cursor: pointer; text-align: center; }
 .btn-primary { background: var(--primary-color); color: #FFF; }
 .btn-copy { background: var(--copy-color); color: #FFF; }
 .btn-secondary { background: #F0F0F0; color: var(--secondary-color); }
